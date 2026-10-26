@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>회전체 실험실</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Jua&family=IBM+Plex+Sans+KR:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#eef3f6; --paper:#fbfdfe; --paper-2:#e6eef3; --ink:#1d2a35; --muted:#5b6b78;
+  --line:#cfdbe3; --grid:#dfe9ef; --grid-strong:#c4d4de;
+  --axis:#d9480f; --accent:#2f5bd3; --accent-ink:#ffffff;
+  --shape:#f2b705; --solid:#4a7fd6; --cut:#d6336c; --shade:rgba(29,42,53,.05);
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#121820; --paper:#1a222c; --paper-2:#232d39; --ink:#e7edf2; --muted:#9aa9b6;
+    --line:#2f3b48; --grid:#243039; --grid-strong:#334452;
+    --axis:#ff8a4c; --accent:#7ea2ff; --accent-ink:#0e1830;
+    --shape:#ffd23f; --solid:#6d9cf0; --cut:#ff6b9a; --shade:rgba(255,255,255,.04);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#121820; --paper:#1a222c; --paper-2:#232d39; --ink:#e7edf2; --muted:#9aa9b6;
+  --line:#2f3b48; --grid:#243039; --grid-strong:#334452;
+  --axis:#ff8a4c; --accent:#7ea2ff; --accent-ink:#0e1830;
+  --shape:#ffd23f; --solid:#6d9cf0; --cut:#ff6b9a; --shade:rgba(255,255,255,.04);
+  color-scheme: dark;
+}
+:root{ box-sizing:border-box; padding-top:env(safe-area-inset-top,0px); padding-bottom:env(safe-area-inset-bottom,0px); }
+*,*::before,*::after{ box-sizing:inherit; }
+html{ scroll-padding-top:env(safe-area-inset-top,0px); }
+body{
+  margin:0; background:var(--bg); color:var(--ink);
+  font-family:"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",system-ui,sans-serif;
+  font-size:15px; line-height:1.55;
+}
+.wrap{ max-width:1240px; margin:0 auto; padding:20px 16px 32px; }
+header.top{ display:flex; flex-wrap:wrap; align-items:baseline; gap:6px 18px; margin:4px 4px 18px; }
+h1{ font-family:"Jua","IBM Plex Sans KR",sans-serif; font-weight:400; font-size:clamp(28px,4vw,40px); margin:0; letter-spacing:-.5px; }
+header.top p{ margin:0; color:var(--muted); max-width:60ch; }
+
+.grid{ display:grid; grid-template-columns:minmax(0,5fr) minmax(0,7fr); gap:16px; align-items:start; }
+@media (max-width:880px){ .grid{ grid-template-columns:1fr; } }
+
+.card{ background:var(--paper); border:1px solid var(--line); border-radius:18px; padding:16px; }
+.card-h{ display:flex; align-items:center; gap:10px; margin:0 0 12px; }
+.card-h.sub{ margin-top:22px; padding-top:18px; border-top:1px dashed var(--line); }
+.card-h h2{ font-family:"Jua","IBM Plex Sans KR",sans-serif; font-weight:400; font-size:22px; margin:0; }
+.step{ display:inline-grid; place-items:center; width:30px; height:30px; border-radius:50%;
+  background:var(--accent); color:var(--accent-ink); font-family:"Jua",sans-serif; font-size:17px; flex:none; }
+
+button{ font:inherit; color:inherit; cursor:pointer; }
+button:focus-visible, input:focus-visible{ outline:3px solid var(--accent); outline-offset:2px; }
+.btn{ border:1px solid var(--line); background:var(--paper-2); border-radius:10px; padding:8px 12px; font-weight:500; }
+.btn:hover{ border-color:var(--grid-strong); }
+.btn.primary{ background:var(--accent); color:var(--accent-ink); border-color:transparent; font-weight:700; }
+.btn.ghost{ background:transparent; }
+
+.seg{ display:inline-flex; background:var(--paper-2); border:1px solid var(--line); border-radius:12px; padding:3px; gap:3px; flex-wrap:wrap; }
+.seg button{ border:0; background:transparent; border-radius:9px; padding:7px 11px; font-weight:500; color:var(--muted); }
+.seg button.on{ background:var(--paper); color:var(--ink); box-shadow:0 0 0 1px var(--line); }
+.seg.wide{ display:flex; }
+.seg.wide button{ flex:1 1 auto; }
+
+.tools{ display:flex; flex-wrap:wrap; gap:8px; justify-content:space-between; margin-bottom:10px; }
+.drawbox{ position:relative; aspect-ratio:1/1; border-radius:12px; overflow:hidden; border:1px solid var(--line); touch-action:none; }
+.drawbox canvas{ display:block; width:100%; height:100%; cursor:crosshair; touch-action:none; }
+.polytools{ display:flex; gap:8px; margin-top:10px; }
+.polytools[hidden]{ display:none; }
+.hint{ color:var(--muted); margin:10px 2px 0; font-size:14px; }
+.hint.warn{ color:var(--cut); }
+.presets{ margin-top:14px; }
+.presets .label{ font-size:14px; color:var(--muted); margin-bottom:8px; }
+.chips{ display:flex; flex-wrap:wrap; gap:6px; }
+.chips button{ border:1px solid var(--line); background:var(--paper); border-radius:999px; padding:6px 12px; font-size:14px; }
+.chips button:hover{ background:var(--paper-2); }
+
+.viewbox{ position:relative; aspect-ratio:4/3; border-radius:12px; overflow:hidden; border:1px solid var(--line);
+  background:radial-gradient(120% 90% at 50% 30%, var(--paper) 0%, var(--paper-2) 100%); }
+.viewbox canvas{ display:block; width:100%; height:100%; touch-action:none; cursor:grab; }
+.viewbox canvas:active{ cursor:grabbing; }
+.views{ position:absolute; top:10px; left:10px; }
+.views.seg button{ padding:5px 10px; font-size:14px; }
+.badge{ position:absolute; top:10px; right:10px; background:var(--accent); color:var(--accent-ink);
+  border-radius:10px; padding:6px 12px; font-family:"Jua",sans-serif; font-size:18px; }
+.badge[hidden]{ display:none; }
+.tip{ position:absolute; bottom:8px; right:10px; font-size:12px; color:var(--muted); pointer-events:none; }
+
+.row{ display:flex; flex-wrap:wrap; gap:12px; align-items:center; margin-top:12px; }
+.slider{ display:flex; flex-direction:column; gap:2px; flex:1 1 220px; font-size:14px; color:var(--muted); }
+.slider b{ color:var(--ink); font-weight:700; }
+.slider[hidden]{ display:none; }
+input[type=range]{ width:100%; accent-color:var(--accent); }
+.toggles{ display:flex; flex-wrap:wrap; gap:6px 18px; margin-top:10px; font-size:14px; }
+.toggles label{ display:inline-flex; align-items:center; gap:6px; cursor:pointer; }
+.toggles input{ accent-color:var(--accent); width:17px; height:17px; }
+
+.cutbody{ display:flex; gap:16px; margin-top:12px; align-items:flex-start; }
+.cutctrl{ flex:1 1 auto; display:flex; flex-direction:column; gap:10px; min-width:0; }
+.desc{ margin:0; font-size:14.5px; }
+.desc strong{ color:var(--cut); }
+.secfig{ margin:0; flex:none; text-align:center; }
+.secfig canvas{ width:150px; height:150px; display:block; border:1px solid var(--line); border-radius:12px; background:var(--paper); }
+.secfig figcaption{ font-size:13px; color:var(--muted); margin-top:4px; }
+@media (max-width:480px){ .cutbody{ flex-direction:column-reverse; align-items:stretch; } .secfig canvas{ margin:0 auto; } }
+@media (prefers-reduced-motion: reduce){ *{ scroll-behavior:auto !important; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <h1>회전체 실험실</h1>
+    <p>평면도형을 그린 뒤 회전축을 중심으로 한 바퀴 돌려 보세요. 만들어진 회전체를 여러 방향에서 보고, 잘라서 단면도 확인할 수 있어요.</p>
+  </header>
+
+  <main class="grid">
+    <section class="card" aria-labelledby="h-draw">
+      <div class="card-h"><span class="step">1</span><h2 id="h-draw">평면도형 그리기</h2></div>
+      <div class="tools">
+        <div class="seg" id="modeSeg" role="group" aria-label="그리기 방법">
+          <button data-mode="free" class="on">✏️ 자유롭게 그리기</button>
+          <button data-mode="poly">📐 점 이어 그리기</button>
+        </div>
+        <button class="btn ghost" id="clearBtn">🗑️ 지우기</button>
+      </div>
+      <div class="drawbox"><canvas id="draw" aria-label="평면도형을 그리는 모눈종이"></canvas></div>
+      <div class="polytools" id="polyTools" hidden>
+        <button class="btn" id="closePoly">도형 닫기</button>
+        <button class="btn" id="endLine">선으로 끝내기</button>
+        <button class="btn ghost" id="undoPt">점 하나 취소</button>
+      </div>
+      <p class="hint" id="hint"></p>
+      <div class="presets">
+        <div class="label">예시 도형 (어떤 회전체가 될지 먼저 예상해 보세요!)</div>
+        <div class="chips" id="presets"></div>
+      </div>
+    </section>
+
+    <section class="card" aria-labelledby="h-view">
+      <div class="card-h"><span class="step">2</span><h2 id="h-view">회전체 관찰하기</h2></div>
+      <div class="viewbox">
+        <canvas id="view" aria-label="회전체 3D 보기"></canvas>
+        <div class="views seg" id="views" role="group" aria-label="보는 방향">
+          <button data-v="front">정면</button><button data-v="side">옆</button><button data-v="top">위</button><button data-v="iso" class="on">비스듬히</button>
+        </div>
+        <div class="badge" id="badge" hidden></div>
+        <div class="tip">드래그해서 돌려 보기 · 휠/두 손가락으로 확대</div>
+      </div>
+      <div class="row">
+        <button class="btn primary" id="playBtn">▶ 회전시키기</button>
+        <label class="slider"><span>회전한 각도 <b id="angVal">0°</b></span><input type="range" id="ang" min="0" max="360" value="0"></label>
+      </div>
+      <div class="toggles">
+        <label><input type="checkbox" id="tAxis" checked> 회전축 보기</label>
+        <label><input type="checkbox" id="tShape" checked> 평면도형 함께 보기</label>
+        <label><input type="checkbox" id="tGlass"> 투명하게 보기</label>
+      </div>
+
+      <div class="card-h sub"><span class="step">3</span><h2>단면 자르기</h2></div>
+      <div class="seg wide" id="cutSeg" role="group" aria-label="자르는 방법">
+        <button data-cut="none" class="on">자르지 않기</button>
+        <button data-cut="h">회전축에 수직인 평면</button>
+        <button data-cut="v">회전축을 포함하는 평면</button>
+      </div>
+      <div class="cutbody">
+        <div class="cutctrl">
+          <label class="slider" id="hWrap" hidden><span>자르는 높이 <b id="hVal"></b></span><input type="range" id="cutH" min="1" max="999" value="500"></label>
+          <label class="slider" id="vWrap" hidden><span>평면을 돌린 각도 <b id="vVal">0°</b></span><input type="range" id="cutV" min="0" max="180" value="0"></label>
+          <p class="desc" id="cutDesc">자르는 방법을 골라 보세요. 회전체를 평면으로 자르면 어떤 모양이 나올까요?</p>
+        </div>
+        <figure class="secfig"><canvas id="sec" width="150" height="150"></canvas><figcaption>단면 모양</figcaption></figure>
+      </div>
+    </section>
+  </main>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(function(){
+const TAU = Math.PI*2;
+const $ = s => document.querySelector(s);
+const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+
+/* ---------------- 상태 ---------------- */
+let profile = null, presetName = null, closed = true;
+let mode = 'free', stroke = null, polyPts = [], hover = null;
+let sweep = 0, playing = false;
+let cutMode = 'none', cutT = 0.5, cutAng = 0;
+
+/* ---------------- 기하 도우미 ---------------- */
+function area(p){ let s=0; for(let i=0;i<p.length;i++){ const a=p[i], b=p[(i+1)%p.length]; s+=a.x*b.y-b.x*a.y; } return s/2; }
+function bounds(p){ let x0=1e9,x1=-1e9,y0=1e9,y1=-1e9; for(const q of p){ x0=Math.min(x0,q.x); x1=Math.max(x1,q.x); y0=Math.min(y0,q.y); y1=Math.max(y1,q.y);} return {x0,x1,y0,y1}; }
+function segDist(p,a,b){ const dx=b.x-a.x, dy=b.y-a.y, L=dx*dx+dy*dy; if(L<1e-12) return Math.hypot(p.x-a.x,p.y-a.y);
+  let t=((p.x-a.x)*dx+(p.y-a.y)*dy)/L; t=Math.max(0,Math.min(1,t)); return Math.hypot(p.x-a.x-t*dx, p.y-a.y-t*dy); }
+function rdp(pts, eps){
+  if(pts.length<3) return pts.slice();
+  const a=pts[0], b=pts[pts.length-1]; let dmax=0, idx=0;
+  for(let i=1;i<pts.length-1;i++){ const d=segDist(pts[i],a,b); if(d>dmax){ dmax=d; idx=i; } }
+  if(dmax>eps){ const l=rdp(pts.slice(0,idx+1),eps), r=rdp(pts.slice(idx),eps); return l.slice(0,-1).concat(r); }
+  return [a,b];
+}
+function dedupe(pts, open){ const out=[]; for(const p of pts){ const q=out[out.length-1]; if(!q || Math.hypot(p.x-q.x,p.y-q.y)>1e-3) out.push(p); }
+  if(!open && out.length>1){ const f=out[0], l=out[out.length-1]; if(Math.hypot(f.x-l.x,f.y-l.y)<1e-3) out.pop(); } return out; }
+function sliceIntervals(poly, h){
+  const xs=[];
+  for(let i=0;i<poly.length;i++){ const p=poly[i], q=poly[(i+1)%poly.length];
+    if((p.y<=h && q.y>h) || (q.y<=h && p.y>h)) xs.push(p.x + (h-p.y)*(q.x-p.x)/(q.y-p.y)); }
+  xs.sort((a,b)=>a-b); const iv=[];
+  for(let i=0;i+1<xs.length;i+=2) if(xs[i+1]-xs[i]>1e-4) iv.push([Math.max(0,xs[i]), xs[i+1]]);
+  return iv;
+}
+function slicePoints(line, h){
+  const xs=[];
+  for(let i=0;i<line.length-1;i++){ const p=line[i], q=line[i+1];
+    if((p.y<=h && q.y>h) || (q.y<=h && p.y>h)) xs.push(Math.max(0, p.x + (h-p.y)*(q.x-p.x)/(q.y-p.y)));
+    else if(p.y===q.y && Math.abs(p.y-h)<1e-9){ xs.push(p.x, q.x); } }
+  xs.sort((a,b)=>a-b); return xs.filter((x,i)=>i===0 || x-xs[i-1]>1e-3);
+}
+function lineLen(p){ let s=0; for(let i=0;i<p.length-1;i++) s+=Math.hypot(p[i+1].x-p[i].x,p[i+1].y-p[i].y); return s; }
+const validLine = p => p.length>=2 && lineLen(p)>0.3 && Math.max(...p.map(q=>q.x))>0.05;
+
+/* ---------------- 예시 도형 ---------------- */
+const arc = (cx,cy,r,a0,a1,n) => Array.from({length:n+1},(_,i)=>{ const a=a0+(a1-a0)*i/n; return [cx+r*Math.cos(a), cy+r*Math.sin(a)]; });
+const PRESETS = [
+  { label:'직사각형', name:'원기둥', pts:[[0,-2],[2,-2],[2,2],[0,2]] },
+  { label:'직각삼각형', name:'원뿔', pts:[[0,-2],[2.5,-2],[0,2.5]] },
+  { label:'반원', name:'구', pts:arc(0,0,2.2,-Math.PI/2,Math.PI/2,48) },
+  { label:'사다리꼴', name:'원뿔대', pts:[[0,-2],[3,-2],[1.5,2],[0,2]] },
+  { label:'축과 떨어진 직사각형', name:'가운데가 빈 원기둥', pts:[[1.2,-2],[3,-2],[3,2],[1.2,2]] },
+  { label:'축과 떨어진 원', name:'도넛 모양', pts:arc(2.6,0,1.1,0,TAU,48).slice(0,-1) },
+  { label:'축과 평행한 선분', name:'원기둥의 옆면', pts:[[2,-2],[2,2]], open:true },
+  { label:'비스듬한 선분', name:'원뿔의 옆면', pts:[[0,2.5],[2.5,-2]], open:true },
+  { label:'꺾은선', name:'뚜껑 없는 그릇 모양', pts:[[0,-2],[2,-2],[2.8,1.8]], open:true },
+];
+const chips = $('#presets');
+PRESETS.forEach(p=>{ const b=document.createElement('button'); b.textContent=p.label;
+  b.onclick=()=>{ polyPts=[]; setProfile(p.pts.map(([x,y])=>({x,y})), p.name, !p.open); }; chips.appendChild(b); });
+
+/* ---------------- 2D 그리기 ---------------- */
+const dc = $('#draw'), dctx = dc.getContext('2d');
+let DW=0, DH=0, unit=1, axisX=0, axisY=0;
+function resizeDraw(){
+  const r = dc.getBoundingClientRect(), dpr = window.devicePixelRatio||1;
+  DW=r.width; DH=r.height; dc.width=Math.round(DW*dpr); dc.height=Math.round(DH*dpr);
+  dctx.setTransform(dpr,0,0,dpr,0,0);
+  unit = DH/10; axisX = DW*0.2; axisY = DH/2; drawCanvas();
+}
+const xMax = () => (DW-axisX)/unit - 0.15;
+const w2c = p => [axisX + p.x*unit, axisY - p.y*unit];
+const c2w = (px,py) => ({ x:(px-axisX)/unit, y:(axisY-py)/unit });
+const clampW = w => ({ x:Math.max(0,Math.min(xMax(),w.x)), y:Math.max(-4.85,Math.min(4.85,w.y)) });
+const snapW = w => clampW({ x:Math.round(w.x*2)/2, y:Math.round(w.y*2)/2 });
+
+function pathPoly(ctx, pts, map){ ctx.beginPath(); pts.forEach((p,i)=>{ const [x,y]=map(p); i?ctx.lineTo(x,y):ctx.moveTo(x,y); }); }
+function drawCanvas(){
+  const c=dctx; c.clearRect(0,0,DW,DH);
+  c.fillStyle=css('--paper'); c.fillRect(0,0,DW,DH);
+  c.fillStyle=css('--shade'); c.fillRect(0,0,axisX,DH);
+  // 모눈
+  c.lineWidth=1;
+  for(let k=-20;k<=40;k++){
+    const x=axisX+k*unit/2; if(x<0||x>DW) continue;
+    c.strokeStyle = k%2===0 ? css('--grid-strong') : css('--grid'); c.beginPath(); c.moveTo(x+.5,0); c.lineTo(x+.5,DH); c.stroke();
+  }
+  for(let k=-20;k<=20;k++){
+    const y=axisY+k*unit/2; if(y<0||y>DH) continue;
+    c.strokeStyle = k%2===0 ? css('--grid-strong') : css('--grid'); c.beginPath(); c.moveTo(0,y+.5); c.lineTo(DW,y+.5); c.stroke();
+  }
+  // 회전축
+  c.strokeStyle=css('--axis'); c.lineWidth=2.5; c.setLineDash([10,6]);
+  c.beginPath(); c.moveTo(axisX,0); c.lineTo(axisX,DH); c.stroke(); c.setLineDash([]);
+  c.fillStyle=css('--axis'); c.font='15px Jua, "IBM Plex Sans KR", sans-serif'; c.textAlign='right';
+  c.fillText('회전축 ', axisX-4, 22);
+  // 완성된 도형
+  if(profile){
+    pathPoly(c, profile, w2c);
+    if(closed){ c.closePath(); c.globalAlpha=.4; c.fillStyle=css('--shape'); c.fill(); c.globalAlpha=1; }
+    c.strokeStyle=css('--shape'); c.lineWidth=closed?3:4.5; c.lineJoin='round'; c.lineCap='round'; c.stroke();
+    if(!closed){ c.fillStyle=css('--shape'); [profile[0],profile[profile.length-1]].forEach(p=>{ const [x,y]=w2c(p); c.beginPath(); c.arc(x,y,5.5,0,TAU); c.fill(); }); }
+  }
+  // 그리는 중
+  if(stroke && stroke.length>1){
+    pathPoly(c, stroke, w2c); c.strokeStyle=css('--accent'); c.lineWidth=3; c.lineCap='round'; c.lineJoin='round'; c.stroke();
+  }
+  if(mode==='poly' && polyPts.length){
+    pathPoly(c, polyPts, w2c); if(hover){ const [hx,hy]=w2c(hover); c.lineTo(hx,hy); }
+    c.strokeStyle=css('--accent'); c.lineWidth=2.5; c.stroke();
+    polyPts.forEach((p,i)=>{ const [x,y]=w2c(p); c.beginPath(); c.arc(x,y,i===0?7:4.5,0,TAU);
+      c.fillStyle= i===0 ? css('--paper') : css('--accent'); c.fill(); c.strokeStyle=css('--accent'); c.lineWidth=2.5; c.stroke(); });
+  }
+  if(mode==='poly' && hover){ const [x,y]=w2c(hover); c.beginPath(); c.arc(x,y,4,0,TAU); c.fillStyle=css('--accent'); c.globalAlpha=.5; c.fill(); c.globalAlpha=1; }
+}
+function localPos(e){ const r=dc.getBoundingClientRect(); return [e.clientX-r.left, e.clientY-r.top]; }
+dc.addEventListener('pointerdown', e=>{
+  e.preventDefault(); dc.setPointerCapture(e.pointerId);
+  const [px,py]=localPos(e);
+  if(mode==='free'){ stroke=[clampW(c2w(px,py))]; drawCanvas(); }
+  else {
+    const w=snapW(c2w(px,py));
+    if(polyPts.length>=3){ const [fx,fy]=w2c(polyPts[0]); if(Math.hypot(px-fx,py-fy)<16){ closePoly(); return; } }
+    const l=polyPts[polyPts.length-1];
+    if(!l || l.x!==w.x || l.y!==w.y) polyPts.push(w);
+    setHint(); drawCanvas();
+  }
+});
+dc.addEventListener('pointermove', e=>{
+  const [px,py]=localPos(e);
+  if(mode==='free' && stroke){
+    const w=clampW(c2w(px,py)), l=stroke[stroke.length-1];
+    if(Math.hypot(w.x-l.x,w.y-l.y)*unit>2){ stroke.push(w); drawCanvas(); }
+  } else if(mode==='poly'){ hover=snapW(c2w(px,py)); drawCanvas(); }
+});
+dc.addEventListener('pointerleave', ()=>{ if(mode==='poly'){ hover=null; drawCanvas(); } });
+const endStroke = ()=>{
+  if(mode!=='free' || !stroke) return;
+  const raw = stroke; stroke=null;
+  if(raw.length<2){ drawCanvas(); return; }
+  const f=raw[0], l=raw[raw.length-1];
+  if(Math.hypot(f.x-l.x,f.y-l.y)<0.6){
+    const pts = dedupe(rdp(raw, 0.035));
+    if(pts.length>=3 && Math.abs(area(pts))>=0.15){ setProfile(pts, null, true); return; }
+  }
+  const line = dedupe(rdp(raw, 0.035), true);
+  if(!validLine(line)){ setHint('조금 더 길게 그려 보세요. 회전축 위에만 있는 선은 돌려도 새로운 모양이 생기지 않아요.', true); drawCanvas(); return; }
+  setProfile(line, null, false);
+};
+dc.addEventListener('pointerup', endStroke); dc.addEventListener('pointercancel', endStroke);
+
+function closePoly(){
+  const pts=dedupe(polyPts);
+  if(pts.length<3 || Math.abs(area(pts))<0.1){ setHint('점을 3개 이상 찍어 넓이가 있는 도형을 만들어 주세요.', true); return; }
+  polyPts=[]; setProfile(pts, null);
+}
+$('#closePoly').onclick=closePoly;
+$('#endLine').onclick=()=>{
+  const pts=dedupe(polyPts, true);
+  if(!validLine(pts)){ setHint('점을 2개 이상 찍어 주세요. 회전축 위에만 있는 선은 돌려도 새로운 모양이 생기지 않아요.', true); return; }
+  polyPts=[]; setProfile(pts, null, false);
+};
+$('#undoPt').onclick=()=>{ polyPts.pop(); setHint(); drawCanvas(); };
+$('#clearBtn').onclick=()=>{ profile=null; presetName=null; polyPts=[]; stroke=null; playing=false; sweep=0; setCut('none'); rebuild3D(); drawCanvas(); setHint(); };
+document.querySelectorAll('#modeSeg button').forEach(b=>b.onclick=()=>{
+  mode=b.dataset.mode; document.querySelectorAll('#modeSeg button').forEach(x=>x.classList.toggle('on',x===b));
+  $('#polyTools').hidden = mode!=='poly'; polyPts=[]; hover=null; setHint(); drawCanvas();
+});
+
+function setHint(msg, warn){
+  const h=$('#hint'); h.classList.toggle('warn', !!warn);
+  if(msg){ h.textContent=msg; return; }
+  if(mode==='free') h.textContent='회전축(주황 점선)의 오른쪽에 그려 보세요. 시작점 가까이에서 손을 떼면 면이 되고, 떨어진 곳에서 손을 떼면 그린 선 그대로 회전해요.';
+  else h.textContent = polyPts.length ? `점 ${polyPts.length}개를 찍었어요. 첫 점을 다시 누르거나 [도형 닫기]를 누르면 면이 되고, [선으로 끝내기]를 누르면 선으로 완성돼요.` : '모눈 위를 눌러 꼭짓점을 찍어 보세요. 점은 모눈의 반 칸 단위로 맞춰져요.';
+}
+
+/* ---------------- 3D ---------------- */
+const vc = $('#view');
+const renderer = new THREE.WebGLRenderer({ canvas:vc, antialias:true, alpha:true });
+renderer.setPixelRatio(Math.min(2, window.devicePixelRatio||1));
+renderer.localClippingEnabled = true;
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(32, 4/3, 0.1, 500);
+scene.add(camera);
+scene.add(new THREE.HemisphereLight(0xffffff, 0x8899aa, 0.65));
+const sun = new THREE.DirectionalLight(0xffffff, 0.75); sun.position.set(3,4,2); camera.add(sun);
+const sunTarget = new THREE.Object3D(); scene.add(sunTarget); sun.target = sunTarget;
+
+const solidMat = new THREE.MeshStandardMaterial({ roughness:.5, metalness:.05, side:THREE.DoubleSide, clippingPlanes:[] });
+const shapeMat = new THREE.MeshBasicMaterial({ transparent:true, opacity:.6, side:THREE.DoubleSide, depthWrite:false });
+const shapeLineMat = new THREE.LineBasicMaterial({});
+const shapeTubeMat = new THREE.MeshBasicMaterial({});
+const capMat = new THREE.MeshLambertMaterial({ side:THREE.DoubleSide, polygonOffset:true, polygonOffsetFactor:-1, polygonOffsetUnits:-1 });
+const axisMat = new THREE.LineDashedMaterial({ dashSize:.25, gapSize:.15 });
+const planeMat = new THREE.MeshBasicMaterial({ transparent:true, opacity:.13, side:THREE.DoubleSide, depthWrite:false });
+const planeLineMat = new THREE.LineBasicMaterial({ transparent:true, opacity:.7 });
+
+let solidMesh=null, sweepShape=null, startShape=null, axisLine=null, capGroup=null, planeHelper=null;
+let B = {x0:0,x1:2,y0:-2,y1:2};
+const target = new THREE.Vector3();
+let camTheta=0.6, camPhi=1.05, camR=14, tween=null;
+
+function applyColors(){
+  solidMat.color.set(css('--solid')); shapeMat.color.set(css('--shape')); shapeTubeMat.color.set(css('--shape')); shapeLineMat.color.set(css('--shape'));
+  capMat.color.set(css('--cut')); axisMat.color.set(css('--axis')); planeMat.color.set(css('--cut')); planeLineMat.color.set(css('--cut'));
+}
+function disposeObj(o){ if(!o) return; scene.remove(o); o.traverse(c=>{ if(c.geometry) c.geometry.dispose(); }); }
+function shapeObj(pts, mirror){
+  const v = pts.map(p=>new THREE.Vector2(mirror?-p.x:p.x, p.y));
+  const g = new THREE.Group();
+  if(!closed){ g.add(tube(v, shapeTubeMat, 0.05)); return g; }
+  g.add(new THREE.Mesh(new THREE.ShapeGeometry(new THREE.Shape(v)), shapeMat));
+  const lp = v.map(q=>new THREE.Vector3(q.x,q.y,0));
+  g.add(new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints(lp), shapeLineMat));
+  return g;
+}
+function tube(v, mat, r){
+  const path = new THREE.CurvePath();
+  for(let i=0;i<v.length-1;i++) path.add(new THREE.LineCurve3(new THREE.Vector3(v[i].x,v[i].y,0), new THREE.Vector3(v[i+1].x,v[i+1].y,0)));
+  return new THREE.Mesh(new THREE.TubeGeometry(path, Math.max(8,(v.length-1)*12), r, 10, false), mat);
+}
+function rebuild3D(){
+  [sweepShape,startShape,axisLine].forEach(disposeObj); sweepShape=startShape=axisLine=null;
+  buildSolid(); clearCut();
+  if(!profile){ updateUI(); return; }
+  B = bounds(profile);
+  sweepShape = shapeObj(profile); startShape = shapeObj(profile); scene.add(sweepShape, startShape);
+  const H=B.y1-B.y0, pad=Math.max(1.2,H*.25);
+  const ag = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(0,B.y0-pad,0), new THREE.Vector3(0,B.y1+pad,0)]);
+  axisLine = new THREE.Line(ag, axisMat); axisLine.computeLineDistances(); scene.add(axisLine);
+  target.set(0,(B.y0+B.y1)/2,0); sunTarget.position.copy(target);
+  camR = Math.max(B.x1*2, H) * 2.6 + 3;
+  updateSweepVisuals(); updateUI();
+}
+function buildSolid(){
+  disposeObj(solidMesh); solidMesh=null;
+  if(!profile || sweep<0.002) return;
+  const pts = profile.map(p=>new THREE.Vector2(p.x,p.y)); if(closed) pts.push(pts[0].clone());
+  const full = sweep>=TAU-1e-4, len = full?TAU:sweep;
+  const segs = Math.max(2, Math.round(128*len/TAU));
+  solidMesh = new THREE.Mesh(new THREE.LatheGeometry(pts, segs, Math.PI/2, len), solidMat);
+  scene.add(solidMesh);
+}
+function updateSweepVisuals(){
+  if(!profile || !sweepShape || !startShape || !axisLine) return;
+  const full = sweep>=TAU-1e-4, show=$('#tShape').checked && cutMode==='none', glass=$('#tGlass').checked;
+  sweepShape.rotation.y = sweep;
+  sweepShape.visible = show && !full;
+  startShape.visible = show && sweep>0.01 && (!full || glass);
+  axisLine.visible = $('#tAxis').checked;
+  $('#angVal').textContent = Math.round(sweep*180/Math.PI)+'°';
+  $('#ang').value = Math.round(sweep*180/Math.PI);
+  const badge=$('#badge'); badge.hidden = !(full && presetName); if(presetName) badge.textContent = presetName;
+}
+function setSweep(v){ sweep=Math.max(0,Math.min(TAU,v)); buildSolid(); updateSweepVisuals(); }
+
+function setProfile(pts, name, isClosed=true){
+  profile = pts; closed = isClosed; presetName = name||null; stroke=null; hover=null;
+  setCut('none'); sweep=0; rebuild3D(); drawCanvas();
+  setHint(name ? `예시 도형 “${PRESETS.find(p=>p.name===name).label}”을(를) 불러왔어요.` : closed ? '면 완성! 오른쪽에서 회전하는 모습을 관찰해 보세요.' : '선 완성! 선이 회전하면서 어떤 면을 만드는지 관찰해 보세요.');
+  playing = true;
+}
+
+/* ----- 카메라 ----- */
+function updateCamera(){
+  const s=Math.sin(camPhi);
+  camera.position.set(target.x+camR*s*Math.sin(camTheta), target.y+camR*Math.cos(camPhi), target.z+camR*s*Math.cos(camTheta));
+  camera.lookAt(target);
+}
+const VIEWS = { front:[0,Math.PI/2], side:[Math.PI/2,Math.PI/2], top:[0,0.015], iso:[0.6,1.05] };
+document.querySelectorAll('#views button').forEach(b=>b.onclick=()=>{
+  const [t,p]=VIEWS[b.dataset.v]; let dt=t-camTheta; dt=((dt+Math.PI)%TAU+TAU)%TAU-Math.PI;
+  tween={ t0:performance.now(), th0:camTheta, ph0:camPhi, th1:camTheta+dt, ph1:p };
+  setViewBtn(b.dataset.v);
+});
+function setViewBtn(v){ document.querySelectorAll('#views button').forEach(x=>x.classList.toggle('on', x.dataset.v===v)); }
+const ptrs = new Map(); let pinch0=0, r0=0;
+vc.addEventListener('pointerdown', e=>{ vc.setPointerCapture(e.pointerId); ptrs.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  if(ptrs.size===2){ const [a,b]=[...ptrs.values()]; pinch0=Math.hypot(a.x-b.x,a.y-b.y); r0=camR; } });
+vc.addEventListener('pointermove', e=>{
+  const p=ptrs.get(e.pointerId); if(!p) return;
+  if(ptrs.size===1){
+    camTheta -= (e.clientX-p.x)*0.009; camPhi = Math.max(0.015, Math.min(Math.PI-0.015, camPhi-(e.clientY-p.y)*0.009));
+    tween=null; setViewBtn(null);
+  }
+  p.x=e.clientX; p.y=e.clientY;
+  if(ptrs.size===2){ const [a,b]=[...ptrs.values()]; const d=Math.hypot(a.x-b.x,a.y-b.y); if(pinch0>0) camR=Math.max(3,Math.min(80,r0*pinch0/d)); }
+});
+const ptrEnd=e=>{ ptrs.delete(e.pointerId); pinch0=0; };
+vc.addEventListener('pointerup',ptrEnd); vc.addEventListener('pointercancel',ptrEnd);
+vc.addEventListener('wheel', e=>{ e.preventDefault(); camR=Math.max(3,Math.min(80,camR*(1+e.deltaY*0.0012))); }, {passive:false});
+
+/* ----- 단면 ----- */
+function clearCut(){ disposeObj(capGroup); disposeObj(planeHelper); capGroup=planeHelper=null; solidMat.clippingPlanes=[]; solidMat.needsUpdate=true; }
+function setCut(m){
+  cutMode=m; document.querySelectorAll('#cutSeg button').forEach(x=>x.classList.toggle('on', x.dataset.cut===m));
+  $('#hWrap').hidden = m!=='h'; $('#vWrap').hidden = m!=='v';
+  if(m!=='none' && profile){ playing=false; setSweep(TAU); }
+  applyCut();
+}
+document.querySelectorAll('#cutSeg button').forEach(b=>b.onclick=()=>{
+  if(!profile && b.dataset.cut!=='none'){ setHint('먼저 평면도형을 그려 주세요.', true); return; }
+  setCut(b.dataset.cut);
+  if(b.dataset.cut==='h'){ document.querySelector('#views [data-v="iso"]').click(); }
+  if(b.dataset.cut==='v'){ tween={ t0:performance.now(), th0:camTheta, ph0:camPhi, th1:cutAng+0.35, ph1:1.2 }; setViewBtn(null); }
+});
+$('#cutH').oninput=e=>{ cutT=e.target.value/1000; applyCut(); };
+$('#cutV').oninput=e=>{ cutAng=e.target.value*Math.PI/180; $('#vVal').textContent=e.target.value+'°'; applyCut(); };
+
+function applyCut(){
+  clearCut();
+  if(profile) updateSweepVisuals();
+  if(!profile || cutMode==='none'){ drawSection(); return; }
+  capGroup = new THREE.Group(); scene.add(capGroup);
+  const S = Math.max(B.x1,0.5)*2.7, H=(B.y1-B.y0);
+  if(cutMode==='h'){
+    const h = B.y0 + (B.y1-B.y0)*cutT;
+    $('#hVal').textContent = '';
+    solidMat.clippingPlanes=[ new THREE.Plane(new THREE.Vector3(0,-1,0), h) ];
+    if(closed){
+      for(const [a,b] of sliceIntervals(profile,h)){
+        const g = a<1e-3 ? new THREE.CircleGeometry(b,128) : new THREE.RingGeometry(a,b,128);
+        const m = new THREE.Mesh(g, capMat); m.rotation.x=-Math.PI/2; m.position.y=h+0.002; capGroup.add(m);
+      }
+    } else {
+      for(const x of slicePoints(profile,h)){
+        const g = x<0.04 ? new THREE.CircleGeometry(0.07,24) : new THREE.RingGeometry(Math.max(0,x-0.04), x+0.04, 128);
+        const m = new THREE.Mesh(g, capMat); m.rotation.x=-Math.PI/2; m.position.y=h+0.002; capGroup.add(m);
+      }
+    }
+    const pg = new THREE.PlaneGeometry(S,S); planeHelper = new THREE.Group();
+    planeHelper.add(new THREE.Mesh(pg, planeMat)); planeHelper.add(new THREE.LineSegments(new THREE.EdgesGeometry(pg), planeLineMat));
+    planeHelper.rotation.x=-Math.PI/2; planeHelper.position.y=h; scene.add(planeHelper);
+  } else {
+    const n = new THREE.Vector3(Math.sin(cutAng),0,Math.cos(cutAng));
+    solidMat.clippingPlanes=[ new THREE.Plane(n.clone().negate(), 0) ];
+    [false,true].forEach(mir=>{ const v=profile.map(p=>new THREE.Vector2(mir?-p.x:p.x,p.y));
+      capGroup.add(closed ? new THREE.Mesh(new THREE.ShapeGeometry(new THREE.Shape(v)), capMat) : tube(v, capMat, 0.045)); });
+    capGroup.rotation.y=cutAng; capGroup.position.copy(n.clone().multiplyScalar(0.002));
+    const pg = new THREE.PlaneGeometry(S, H+Math.max(1.5,H*.35)); planeHelper=new THREE.Group();
+    planeHelper.add(new THREE.Mesh(pg, planeMat)); planeHelper.add(new THREE.LineSegments(new THREE.EdgesGeometry(pg), planeLineMat));
+    planeHelper.rotation.y=cutAng; planeHelper.position.y=(B.y0+B.y1)/2; scene.add(planeHelper);
+  }
+  solidMat.needsUpdate=true;
+  drawSection();
+}
+
+/* ----- 단면 미리보기 ----- */
+const sc=$('#sec'), sctx=sc.getContext('2d');
+function sizeSec(){ const dpr=window.devicePixelRatio||1; sc.width=150*dpr; sc.height=150*dpr; sctx.setTransform(dpr,0,0,dpr,0,0); }
+function drawSection(){
+  const c=sctx, W=150, Hh=150; c.clearRect(0,0,W,Hh);
+  const desc=$('#cutDesc');
+  if(!profile || cutMode==='none'){
+    c.fillStyle=css('--muted'); c.font='13px "IBM Plex Sans KR", sans-serif'; c.textAlign='center'; c.fillText('?', W/2, Hh/2+5);
+    desc.textContent = profile ? '자르는 방법을 골라 보세요. 회전체를 평면으로 자르면 어떤 모양이 나올까요?' : '먼저 평면도형을 그리거나 예시 도형을 골라 주세요.';
+    return;
+  }
+  c.fillStyle=css('--cut'); c.strokeStyle=css('--cut'); c.lineWidth=2;
+  if(cutMode==='h'){
+    const h=B.y0+(B.y1-B.y0)*cutT, s=(W*0.42)/Math.max(B.x1,0.1);
+    let shape;
+    if(closed){
+      const iv=sliceIntervals(profile,h);
+      c.beginPath();
+      for(const [a,b] of iv){ c.moveTo(W/2+b*s,Hh/2); c.arc(W/2,Hh/2,b*s,0,TAU); if(a>1e-3){ c.moveTo(W/2+a*s,Hh/2); c.arc(W/2,Hh/2,a*s,0,TAU,true); } }
+      c.globalAlpha=.75; c.fill('evenodd'); c.globalAlpha=1; c.stroke();
+      if(!iv.length) shape='이 높이에서는 회전체를 지나지 않아요.';
+      else if(iv.length===1 && iv[0][0]<1e-3) shape='단면은 <strong>원</strong>이에요.';
+      else if(iv.length===1) shape='단면은 가운데가 빈 <strong>고리 모양</strong>(두 원 사이의 부분)이에요.';
+      else shape='단면은 <strong>여러 겹의 고리 모양</strong>이에요.';
+    } else {
+      const xs=slicePoints(profile,h); c.lineWidth=3;
+      for(const x of xs){ c.beginPath(); if(x<0.04){ c.arc(W/2,Hh/2,4.5,0,TAU); c.fill(); } else { c.arc(W/2,Hh/2,x*s,0,TAU); c.stroke(); } }
+      if(!xs.length) shape='이 높이에서는 선이 만든 면을 지나지 않아요.';
+      else if(xs.length===1 && xs[0]<0.04) shape='이 높이에서는 회전축 위의 한 <strong>점</strong>에서만 만나요.';
+      else if(xs.length===1) shape='잘린 자리는 <strong>원</strong>이에요. 선을 돌려 만든 면은 속이 비어 있어서, 원의 안쪽은 채워지지 않아요.';
+      else shape='잘린 자리는 <strong>여러 개의 원</strong>이에요. 선을 돌려 만든 면은 속이 비어 있어요.';
+    }
+    c.fillStyle=css('--axis'); c.beginPath(); c.arc(W/2,Hh/2,2.5,0,TAU); c.fill();
+    desc.innerHTML = shape + ' 회전축에 수직인 평면으로 자르면 단면의 경계는 언제나 회전축 위의 점을 중심으로 하는 <strong>원</strong>이에요. 높이를 바꾸면 원의 크기가 어떻게 달라지는지 살펴보세요.';
+  } else {
+    const s=Math.min((W*0.86)/(2*Math.max(B.x1,0.1)), (Hh*0.86)/Math.max(B.y1-B.y0,0.1)), cy=(B.y0+B.y1)/2;
+    const map=mir=>p=>[W/2+(mir?-p.x:p.x)*s, Hh/2-(p.y-cy)*s];
+    [false,true].forEach(m=>{ pathPoly(c,profile,map(m));
+      if(closed){ c.closePath(); c.globalAlpha=.75; c.fill(); c.globalAlpha=1; c.stroke(); }
+      else { c.lineWidth=3; c.lineCap='round'; c.lineJoin='round'; c.stroke(); } });
+    c.strokeStyle=css('--axis'); c.setLineDash([5,4]); c.lineWidth=1.5; c.beginPath(); c.moveTo(W/2,4); c.lineTo(W/2,Hh-4); c.stroke(); c.setLineDash([]);
+    const apart = B.x0>1e-3;
+    desc.innerHTML = (closed
+        ? '회전축을 포함하는 평면으로 자르면, 단면은 처음 그린 평면도형과 그것을 회전축에 대하여 뒤집은 도형을 합친 모양이에요. 그래서 단면은 회전축을 대칭축으로 하는 <strong>선대칭도형</strong>이에요.'
+        : '회전축을 포함하는 평면으로 자르면, 잘린 자리는 처음 그린 선과 그것을 회전축에 대하여 뒤집은 선을 합친 모양이에요. 회전축을 대칭축으로 하는 <strong>선대칭</strong>인 모양이에요.')
+      + (apart ? (closed ? ' 도형이 회전축에서 떨어져 있어서 단면도 두 조각으로 나뉘어요.' : ' 선이 회전축에 닿지 않아서 두 조각으로 나뉘어요.') : '')
+      + ' 평면을 돌려 보세요. 어느 방향으로 잘라도 단면은 모두 <strong>합동</strong>이에요.';
+  }
+}
+
+/* ----- 회전 조작 ----- */
+$('#playBtn').onclick=()=>{
+  if(!profile){ setHint('먼저 평면도형을 그려 주세요.', true); return; }
+  if(cutMode!=='none') setCut('none');
+  if(sweep>=TAU-1e-4) setSweep(0);
+  playing=true;
+};
+$('#ang').oninput=e=>{ if(!profile) return; playing=false; if(cutMode!=='none') setCut('none'); setSweep(e.target.value*Math.PI/180); };
+['#tAxis','#tShape'].forEach(id=>$(id).onchange=()=>updateSweepVisuals());
+$('#tGlass').onchange=e=>{ const g=e.target.checked; solidMat.transparent=g; solidMat.opacity=g?.42:1; solidMat.depthWrite=!g; solidMat.needsUpdate=true; updateSweepVisuals(); };
+
+function updateUI(){ $('#playBtn').disabled=!profile; }
+
+/* ----- 크기 / 테마 / 루프 ----- */
+function resizeView(){ const r=vc.getBoundingClientRect(); renderer.setSize(r.width, r.height, false); camera.aspect=r.width/Math.max(1,r.height); camera.updateProjectionMatrix(); }
+new ResizeObserver(resizeDraw).observe(dc);
+new ResizeObserver(resizeView).observe(vc);
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', ()=>{ applyColors(); drawCanvas(); drawSection(); });
+new MutationObserver(()=>{ applyColors(); drawCanvas(); drawSection(); }).observe(document.documentElement,{attributes:true, attributeFilter:['data-theme']});
+
+const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+let last=performance.now();
+function loop(now){
+  requestAnimationFrame(loop);
+  try{
+  const dt=Math.min(0.05,(now-last)/1000); last=now;
+  if(playing && profile){
+    const ns = reduce ? TAU : sweep + dt*TAU/4.5;
+    if(ns>=TAU){ playing=false; setSweep(TAU); } else setSweep(ns);
+  }
+  if(tween){ let k=Math.min(1,(now-tween.t0)/500); const e=k<.5?2*k*k:1-Math.pow(-2*k+2,2)/2;
+    camTheta=tween.th0+(tween.th1-tween.th0)*e; camPhi=tween.ph0+(tween.ph1-tween.ph0)*e; if(k>=1) tween=null; }
+  updateCamera(); renderer.render(scene,camera);
+  }catch(err){ console.error(err); }
+}
+
+requestAnimationFrame(loop);
+applyColors(); sizeSec(); resizeView(); resizeDraw(); setHint();
+setProfile(PRESETS[1].pts.map(([x,y])=>({x,y})), PRESETS[1].name);
+})();
+</script>
+</body>
+</html>
